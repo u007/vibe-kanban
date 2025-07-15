@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -60,7 +60,7 @@ export function GitHubLoginDialog({
 
   // Poll for completion
   useEffect(() => {
-    let timer: number;
+    let timer: ReturnType<typeof setTimeout>;
     if (polling && deviceState) {
       const poll = async () => {
         try {
@@ -102,14 +102,7 @@ export function GitHubLoginDialog({
     };
   }, [polling, deviceState]);
 
-  // Automatically copy code to clipboard when deviceState is set
-  useEffect(() => {
-    if (deviceState?.user_code) {
-      copyToClipboard(deviceState.user_code);
-    }
-  }, [deviceState?.user_code]);
-
-  const copyToClipboard = async (text: string) => {
+  const copyToClipboard = useCallback(async (text: string) => {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
@@ -137,7 +130,14 @@ export function GitHubLoginDialog({
     } catch (err) {
       console.warn('Copy to clipboard failed:', err);
     }
-  };
+  }, []);
+
+  // Automatically copy code to clipboard when deviceState is set
+  useEffect(() => {
+    if (deviceState?.user_code) {
+      copyToClipboard(deviceState.user_code);
+    }
+  }, [deviceState?.user_code, copyToClipboard]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} uncloseable>

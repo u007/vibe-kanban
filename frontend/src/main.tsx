@@ -11,7 +11,8 @@ import {
   matchRoutes,
 } from 'react-router-dom';
 
-Sentry.init({
+if (import.meta.env.VITE_SENTRY_ENABLED === 'true') {
+  Sentry.init({
   dsn: 'https://1065a1d276a581316999a07d5dffee26@o4509603705192449.ingest.de.sentry.io/4509605576441937',
   tracesSampleRate: 1.0,
   environment: import.meta.env.MODE === 'development' ? 'dev' : 'production',
@@ -24,8 +25,9 @@ Sentry.init({
       matchRoutes,
     }),
   ],
-});
-Sentry.setTag('source', 'frontend');
+  });
+  Sentry.setTag('source', 'frontend');
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

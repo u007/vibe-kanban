@@ -125,12 +125,16 @@ fn main() -> anyhow::Result<()> {
     } else {
         "production"
     };
-    let _guard = sentry::init(("https://1065a1d276a581316999a07d5dffee26@o4509603705192449.ingest.de.sentry.io/4509605576441937", sentry::ClientOptions {
-        release: sentry::release_name!(),
-        environment: Some(environment.into()),
-        attach_stacktrace: true,
-        ..Default::default()
-    }));
+    let _guard = if std::env::var("SENTRY_ENABLED").unwrap_or_default() == "true" {
+        Some(sentry::init(("https://1065a1d276a581316999a07d5dffee26@o4509603705192449.ingest.de.sentry.io/4509605576441937", sentry::ClientOptions {
+            release: sentry::release_name!(),
+            environment: Some(environment.into()),
+            attach_stacktrace: true,
+            ..Default::default()
+        })))
+    } else {
+        None
+    };
     sentry::configure_scope(|scope| {
         scope.set_tag("source", "server");
     });
@@ -215,24 +219,11 @@ fn main() -> anyhow::Result<()> {
                 .layer(CorsLayer::permissive())
                 .layer(NewSentryLayer::new_from_top());
 
-            let port = std::env::var("BACKEND_PORT")
-                .or_else(|_| std::env::var("PORT"))
-                .ok()
-                .and_then(|s| {
-                    // remove any ANSI codes, then turn into String
-                    let cleaned = String::from_utf8(strip(s.as_bytes()))
-                        .expect("UTF-8 after stripping ANSI");
-                    cleaned.trim().parse::<u16>().ok()
-                })
-                .unwrap_or_else(|| {
-                    tracing::error!("Failed to parse port after stripping ANSI, defaulting to 0");
-                    0
-                }); // Use 0 to find free port if no specific port provided
+            let port = 8000;
+            let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
+            let actual_port = listener.local_addr()?.port();
 
-            let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await?;
-            let actual_port = listener.local_addr()?.port(); // get → 53427 (example)
-
-            tracing::info!("Server running on http://0.0.0.0:{actual_port}");
+            tracing::info!("Server running on http://0.0.0.0:{}", actual_port);
 
             if !cfg!(debug_assertions) {
                 tracing::info!("Opening browser...");

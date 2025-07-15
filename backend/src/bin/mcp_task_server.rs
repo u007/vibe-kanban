@@ -11,11 +11,15 @@ fn main() -> anyhow::Result<()> {
     } else {
         "production"
     };
-    let _guard = sentry::init(("https://1065a1d276a581316999a07d5dffee26@o4509603705192449.ingest.de.sentry.io/4509605576441937", sentry::ClientOptions {
-        release: sentry::release_name!(),
-        environment: Some(environment.into()),
-        ..Default::default()
-    }));
+    let _guard = if std::env::var("SENTRY_ENABLED").unwrap_or_default() == "true" {
+        Some(sentry::init(("https://1065a1d276a581316999a07d5dffee26@o4509603705192449.ingest.de.sentry.io/4509605576441937", sentry::ClientOptions {
+            release: sentry::release_name!(),
+            environment: Some(environment.into()),
+            ..Default::default()
+        })))
+    } else {
+        None
+    };
     sentry::configure_scope(|scope| {
         scope.set_tag("source", "mcp");
     });
